@@ -97,10 +97,12 @@ install:
 	install -d $(DRAGONFLY_ROOT)/config/
 	install -d $(DRAGONFLY_ROOT)/filter/
 	install -d $(DRAGONFLY_ROOT)/analyzer/
+	install -d $(DRAGONFLY_ROOT)/www/
 	install ./dragonfly-mle $(DRAGONFLY_ROOT)/bin/
 	install ./analyzer/* $(DRAGONFLY_ROOT)/analyzer/
 	install ./filter/* $(DRAGONFLY_ROOT)/filter/
 	install ./config/* $(DRAGONFLY_ROOT)/config/
+	install ./www/* $(DRAGONFLY_ROOT)/www/
 
 # ------------------------------------------------------------------
 # reconfigure OS target, i.e. gmake for Linux and make for FreeBSD

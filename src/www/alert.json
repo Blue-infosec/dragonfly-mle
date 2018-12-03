@@ -1,0 +1,5 @@
+{
+    "name": "Example Alert",
+    "description": "Simple analyzer to decode json and output to file",
+    "features": {}
+}
