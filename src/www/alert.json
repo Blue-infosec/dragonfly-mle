@@ -1,0 +1,7 @@
+{
+    "id": "alert",
+    "version":"1.0.0",
+    "name": "Example Alert",
+    "description": "Simple analyzer to decode json and output to file",
+    "features": {}
+}
