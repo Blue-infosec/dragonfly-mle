@@ -35,18 +35,12 @@ UNIT_SRC = unit-test.c
 # library ore files
 # -----------------------------------------------------------------
 SRCS0 = dragonfly-lib.c dragonfly-io.c dragonfly-cmds.c config.c \
-	webservice.c responder.c
+	webservice.c 
 
 # ------------------------------------------------------------------
 # I/O modules
 # ------------------------------------------------------------------
-SRCS1 = io/io-file.c io/io-pipe.c io/io-tail.c io/io-kafka.c \
-        io/io-syslog.c io/io-zfile.c io/io-ipfix.c
-
-# ------------------------------------------------------------------
-# Responder modules
-# ------------------------------------------------------------------
-SRCS2 = resp/resp-suricata.c
+SRCS1 = io/io-file.c io/io-pipe.c io/io-tail.c io/io-syslog.c io/io-zfile.c 
 
 # ------------------------------------------------------------------
 # third party open-source libraries

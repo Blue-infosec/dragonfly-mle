@@ -80,7 +80,7 @@ int suricata_initialize(const char *command_path)
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
 
-    strncpy(addr.sun_path, command_path, sizeof(addr.sun_path));
+    strncpy(addr.sun_path, command_path, sizeof(addr.sun_path)-1);
     memset(buffer, 0, sizeof(buffer));
 
     if ((s = connect(g_command_socket, (struct sockaddr *)&addr, sizeof(addr))) < 0)

@@ -56,7 +56,6 @@
 #include "dragonfly-cmds.h"
 #include "dragonfly-io.h"
 #include "webservice.h"
-#include "responder.h"
 #include "config.h"
 #include "param.h"
 
@@ -69,9 +68,9 @@ uint64_t volatile g_initialized = 0;
 
 static char g_root_dir[PATH_MAX];
 static char g_log_dir[PATH_MAX];
-static char g_filter_dir[PATH_MAX];
-static char g_analyzer_dir[PATH_MAX];
-static char g_config_file[PATH_MAX];
+static char g_filter_dir[PATH_MAX+PATH_MAX];
+static char g_analyzer_dir[PATH_MAX+PATH_MAX];
+static char g_config_file[PATH_MAX+PATH_MAX];
 
 static int g_analyzer_pid = -1;
 static int g_num_analyzer_threads = 0;
@@ -91,7 +90,6 @@ static MLE_STATS *g_stats = NULL;
 static INPUT_CONFIG g_input_list[MAX_INPUT_STREAMS];
 static INPUT_CONFIG g_flywheel_list[MAX_INPUT_STREAMS];
 static OUTPUT_CONFIG g_output_list[MAX_OUTPUT_STREAMS];
-static RESPONDER_CONFIG g_responder_list[MAX_RESPONDER_COMMANDS];
 static ANALYZER_CONFIG g_analyzer_list[MAX_ANALYZER_STREAMS];
 
 static pthread_t g_io_thread[(MAX_INPUT_STREAMS * 2) + MAX_OUTPUT_STREAMS];
@@ -118,11 +116,9 @@ static const luaL_reg dragonfly_functions[] =
      {"timer_event", timer_event},
      {"analyze_event", analyze_event},
      {"output_event", output_event},
+     {"forward_event", output_event},
      {"log_event", log_event},
      {"stats_event", stats_event},
-#ifdef SURI_RESPONSE_COMMAND
-     {"response_event", stats_event},
-#endif
      {NULL, NULL}};
 
 /*
@@ -334,33 +330,6 @@ int output_event(lua_State *L)
     }
 
     return 0;
-}
-
-/*
- * ---------------------------------------------------------------------------------------
- *
- * ---------------------------------------------------------------------------------------
- */
-int response_event(lua_State *L)
-{
-    if (lua_gettop(L) != 2)
-    {
-        return luaL_error(L, "expecting exactly 2 arguments");
-    }
-
-    const char *tag = luaL_checkstring(L, 1);
-    const char *command = luaL_checkstring(L, 2);
-    char response[2048];
-
-    if (responder_event(tag, command, response, sizeof(response)) < 0)
-    {
-        lua_pushnil(L);
-    }
-    else
-    {
-        lua_pushstring(L, response);
-    }
-    return 1;
 }
 
 /*
@@ -869,21 +838,6 @@ static void *lua_analyzer_thread(void *ptr)
         lua_setglobal(L, "default_output");
     }
 
-    /*
-     * Initialize responders commands;
-     */
-    responder_initialize();
-    for (int i = 0; i < MAX_RESPONDER_COMMANDS; i++)
-    {
-        if (g_responder_list[i].tag && g_responder_list[i].param)
-        {
-            if (responder_setup(g_responder_list[i].tag, g_responder_list[i].param) < 0)
-            {
-                syslog(LOG_ERR, "responder_setup %s failed", g_responder_list[i].tag);
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
 
     /* initialize the script */
     lua_getglobal(L, "setup");
@@ -958,11 +912,11 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     // check root dir
     if (!*rootdir)
     {
-        strncpy(g_root_dir, DRAGONFLY_ROOT_DIR, PATH_MAX);
+        strncpy(g_root_dir, DRAGONFLY_ROOT_DIR, PATH_MAX-1);
     }
     else
     {
-        strncpy(g_root_dir, rootdir, PATH_MAX);
+        strncpy(g_root_dir, rootdir, PATH_MAX-1);
     }
     struct stat sb;
     if ((lstat(g_root_dir, &sb) < 0) || !S_ISDIR(sb.st_mode))
@@ -974,11 +928,11 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     // check log dir
     if (!logdir)
     {
-        strncpy(g_log_dir, DRAGONFLY_LOG_DIR, PATH_MAX);
+        strncpy(g_log_dir, DRAGONFLY_LOG_DIR, PATH_MAX-1);
     }
     else
     {
-        strncpy(g_log_dir, logdir, PATH_MAX);
+        strncpy(g_log_dir, logdir, PATH_MAX-1);
     }
     dragonfly_io_set_logdir(g_log_dir);
 
@@ -995,7 +949,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
         }
     }
 
-    snprintf(g_config_file, PATH_MAX, "%s/%s", g_root_dir, CONFIG_FILE);
+    snprintf(g_config_file, sizeof(g_config_file)-1, "%s/%s", g_root_dir, CONFIG_FILE);
     if ((lstat(g_config_file, &sb) < 0) || !S_ISREG(sb.st_mode))
     {
         fprintf(stderr, "config file %s does not exist.\n", g_config_file);
@@ -1003,7 +957,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
         exit(EXIT_FAILURE);
     }
 
-    snprintf(g_analyzer_dir, PATH_MAX, "%s/%s", g_root_dir, ANALYZER_DIR);
+    snprintf(g_analyzer_dir, sizeof(g_analyzer_dir)-1, "%s/%s", g_root_dir, ANALYZER_DIR);
     /*
 	 * Make sure analyzer directory exists
 	 */
@@ -1014,7 +968,7 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
         exit(EXIT_FAILURE);
     }
 
-    snprintf(g_filter_dir, PATH_MAX, "%s/%s", g_root_dir, FILTER_DIR);
+    snprintf(g_filter_dir, sizeof(g_filter_dir)-1, "%s/%s", g_root_dir, FILTER_DIR);
     /*
 	 * Make sure filter directory exists
 	 */
@@ -1085,11 +1039,6 @@ void initialize_configuration(const char *rootdir, const char *logdir, const cha
     if ((g_num_input_threads = load_inputs_config(L, g_filter_dir, g_input_list, MAX_INPUT_STREAMS)) <= 0)
     {
         syslog(LOG_ERR, "load_input_config failed");
-        exit(EXIT_FAILURE);
-    }
-    if ((load_responder_config(L, g_responder_list, MAX_RESPONDER_COMMANDS)) < 0)
-    {
-        syslog(LOG_ERR, "load_responder_config failed");
         exit(EXIT_FAILURE);
     }
     lua_close(L);
@@ -1234,7 +1183,6 @@ static void create_message_queues()
         {
             char output_name[PATH_MAX];
             snprintf(output_name, sizeof(output_name), "%s-%d", QUEUE_OUTPUT, i);
-            //fprintf(stderr,"%s:%i %s => %s\n", __FUNCTION__, __LINE__, output_name, g_output_list[i].uri );
             g_output_list[i].queue = msgqueue_create(output_name, _MAX_BUFFER_SIZE_, MAX_QUEUE_LENGTH);
         }
     }

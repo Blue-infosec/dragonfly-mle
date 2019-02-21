@@ -80,9 +80,6 @@ void msgqueue_reset(const char *queue_name, int msg_max, long queue_max)
 			}
 			if (strncmp(buffer, reset_msg, length) == 0)
 			{
-#ifdef __DEBUG3__
-				fprintf(stderr, "%s: %s success\n", queue_name, __FUNCTION__);
-#endif
 				break;
 			}
 		} while (1);
@@ -99,9 +96,6 @@ void msgqueue_reset(const char *queue_name, int msg_max, long queue_max)
  */
 queue_t *msgqueue_create(const char *queue_name, int msg_max, long queue_max)
 {
-#ifdef __DEBUG3__
-	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
-#endif
 	queue_t *q = (queue_t *)malloc(sizeof(queue_t));
 	if (!q)
 		return NULL;
@@ -143,9 +137,6 @@ queue_t *msgqueue_create(const char *queue_name, int msg_max, long queue_max)
  */
 void msgqueue_cancel(queue_t *q)
 {
-#ifdef __DEBUG3__
-	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
-#endif
 	if (!q || q->cancel)
 		return;
 	q->cancel = 1;
@@ -159,9 +150,6 @@ void msgqueue_cancel(queue_t *q)
  */
 void msgqueue_destroy(queue_t *q)
 {
-#ifdef __DEBUG3__
-	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
-#endif
 	if (!q)
 		return;
 	close(q->pipefd[0]);
@@ -178,9 +166,6 @@ void msgqueue_destroy(queue_t *q)
  */
 int msgqueue_send(queue_t *q, const char *buffer, int length)
 {
-#ifdef __DEBUG3__
-	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
-#endif
 	if (!q || q->cancel)
 		return -1;
 
@@ -228,9 +213,6 @@ int msgqueue_send(queue_t *q, const char *buffer, int length)
  */
 int msgqueue_recv(queue_t *q, char *buffer, int max_size)
 {
-#ifdef __DEBUG3__
-	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
-#endif
 	if (!q || q->cancel)
 		return -1;
 
@@ -250,9 +232,6 @@ int msgqueue_recv(queue_t *q, char *buffer, int max_size)
 			{
 				if (n == 0)
 					return 0;
-#ifdef __DEBUG3__
-				fprintf(stderr, "%s: read() error: %s\n", __FUNCTION__, strerror(errno));
-#endif
 				switch (errno)
 				{
 				case ETIMEDOUT:
@@ -286,9 +265,6 @@ int msgqueue_recv(queue_t *q, char *buffer, int max_size)
 			{
 				if (n == 0)
 					return 0;
-#ifdef __DEBUG__
-				fprintf(stderr, "%s: read() error: %s\n", __FUNCTION__, strerror(errno));
-#endif
 				switch (errno)
 				{
 				case ETIMEDOUT:

@@ -38,9 +38,7 @@
 #include "io-tail.h"
 #include "io-pipe.h"
 #include "io-zfile.h"
-#include "io-kafka.h"
 #include "io-syslog.h"
-#include "io-ipfix.h"
 
 static char *g_run_dir = NULL;
 static char *g_log_dir = NULL;
@@ -118,17 +116,9 @@ DF_HANDLE *dragonfly_io_open(const char *uri, int spec)
         {
                 return zfile_open(((const char *)uri + 8), spec);
         }
-        else if (strncmp("kafka://", uri, 8) == 0)
-        {
-                return kafka_open(((const char *)uri + 8), spec);
-        }
         else if (strncmp("suricata://", uri, 11) == 0)
         {
                 return ipc_open(((const char *)uri + 11), spec);
-        }
-        else if (strncmp("ipfix://", uri, 8) == 0)
-        {
-                return ipfix_open(((const char *)uri + 11), spec);
         }
         else if (strncmp("syslog://", uri, 9) == 0)
         {
@@ -137,9 +127,6 @@ DF_HANDLE *dragonfly_io_open(const char *uri, int spec)
         else
         {
                 syslog(LOG_ERR, "%s: invalid file specifier", __FUNCTION__);
-#ifdef __DEBUG3__
-                fprintf(stderr, "%s (%i) invalid file specifier\n", __FUNCTION__, __LINE__);
-#endif
         }
         return NULL;
 }
@@ -161,10 +148,6 @@ int dragonfly_io_write(DF_HANDLE *dh, char *buffer)
         else if (dh->io_type == DF_OUT_FILE_TYPE)
         {
                 return file_write_line(dh, buffer);
-        }
-        else if (dh->io_type == DF_OUT_KAFKA_TYPE)
-        {
-                return kafka_write_message(dh, buffer);
         }
         else if (dh->io_type == DF_OUT_SYSLOG_TYPE)
         {
@@ -199,14 +182,6 @@ int dragonfly_io_read(DF_HANDLE *dh, char *buffer, int len)
         else if (dh->io_type == DF_IN_ZFILE_TYPE)
         {
                 return zfile_read_line(dh, buffer, len);
-        }
-        else if (dh->io_type == DF_IN_KAFKA_TYPE)
-        {
-                return kafka_read_message(dh, buffer, len);
-        }
-        else if (dh->io_type == DF_IPFIX)
-        {
-                return ipfix_read_line(dh, buffer, len);
         }
         return -1;
 }
@@ -270,14 +245,6 @@ void dragonfly_io_close(DF_HANDLE *dh)
         else if (dh->io_type == DF_IN_ZFILE_TYPE)
         {
                 return zfile_close(dh);
-        }
-        else if (dh->io_type == DF_IN_KAFKA_TYPE)
-        {
-                return kafka_close(dh);
-        }
-        else if (dh->io_type == DF_IPFIX)
-        {
-                return ipfix_close(dh);
         }
         free(dh->path);
         dh->path = NULL;

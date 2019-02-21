@@ -64,10 +64,11 @@ analyzers = {
 }
 
 -- -----------------------------------------------------------
--- Output queues/processors
+-- Output using fluentbit.io library
 -- -----------------------------------------------------------
 outputs = {
     { tag="log", uri="file://dragonfly-example.log"},
+    { tag="stdout", uri="file://dragonfly-example.log"},
     -- { tag="flow2", uri="ipc://flow-ipc.log"},
     -- { tag="tls", uri="file://tls-alerts.log"},
     -- { tag="dns", uri="file://dns-alerts.log"},
