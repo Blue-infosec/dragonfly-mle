@@ -32,7 +32,7 @@ redis_port = "6379"
 -- Input queues/processors
 -- -----------------------------------------------------------
 inputs = {
-   { tag="eve", uri="tail:///var/log/suricata/eve.json", script="suricata-filter.lua", default_analyzer="alert"}, --Split messages based on type
+   { tag="eve", uri="tail:///opt/suricata/var/log/suricata/eve.json", script="suricata-filter.lua", default_analyzer="alert"}, --Split messages based on type
    --{ tag="flow2", uri="ipc://flow-ipc.log", script="passthrough-filter.lua"}
 }
 

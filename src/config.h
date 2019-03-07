@@ -59,7 +59,7 @@ typedef struct _MLE_TIMER_
     time_t epoch;
     size_t length;
     char *tag;
-    char *msgpack;
+    char *message;
     queue_t *queue;
 } MLE_TIMER;
 

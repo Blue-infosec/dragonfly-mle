@@ -38,6 +38,7 @@
 #include "io-tail.h"
 #include "io-pipe.h"
 #include "io-zfile.h"
+#include "io-nats.h"
 #include "io-syslog.h"
 
 static char *g_run_dir = NULL;
@@ -55,7 +56,6 @@ void dragonfly_io_set_rundir(const char *rundir)
                 free (g_run_dir);
         }
         g_run_dir = strndup(rundir, PATH_MAX);
-        //ssfprintf(stderr,"%s: %s\n", __FUNCTION__, g_run_dir);
 }
 
 /*
@@ -80,7 +80,6 @@ void dragonfly_io_set_logdir(const char *rundir)
                 free (g_log_dir);
         }
         g_log_dir = strndup(rundir, PATH_MAX);
-        //ssfprintf(stderr,"%s: %s\n", __FUNCTION__, g_run_dir);
 }
 
 /*
@@ -116,14 +115,14 @@ DF_HANDLE *dragonfly_io_open(const char *uri, int spec)
         {
                 return zfile_open(((const char *)uri + 8), spec);
         }
-        else if (strncmp("suricata://", uri, 11) == 0)
-        {
-                return ipc_open(((const char *)uri + 11), spec);
-        }
         else if (strncmp("syslog://", uri, 9) == 0)
         {
                 return ipc_open(((const char *)uri + 9), spec);
         }
+        else if (strncmp("nats://", uri, 7) == 0)
+        {
+                return nats_open(((const char *)uri + 7), spec);
+	}
         else
         {
                 syslog(LOG_ERR, "%s: invalid file specifier", __FUNCTION__);
@@ -152,6 +151,10 @@ int dragonfly_io_write(DF_HANDLE *dh, char *buffer)
         else if (dh->io_type == DF_OUT_SYSLOG_TYPE)
         {
                 return syslog_write_message(dh, buffer);
+        }
+        else if (dh->io_type == DF_OUT_NATS_TYPE)
+        {
+                return nats_write_message(dh, buffer);
         }
         return -1;
 }
@@ -182,6 +185,10 @@ int dragonfly_io_read(DF_HANDLE *dh, char *buffer, int len)
         else if (dh->io_type == DF_IN_ZFILE_TYPE)
         {
                 return zfile_read_line(dh, buffer, len);
+        }
+        else if (dh->io_type == DF_IN_NATS_TYPE)
+        {
+                return nats_read_message(dh, buffer, len);
         }
         return -1;
 }

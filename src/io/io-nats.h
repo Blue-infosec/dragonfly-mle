@@ -21,11 +21,15 @@
  *
  */
 
-#ifndef _SURICATA_COMMAND_
-#define _SURICATA_COMMAND_
+#ifndef _IO_NATS_H_
+#define _IO_NATS_H_
 
-int suricata_initialize(const char *command_path);
-int suricata_command(const char *command, char* response, int max_response);
+/*
+ * Pipe IO
+ */
+DF_HANDLE *nats_open(const char *path, int spec);
+int nats_read_message(DF_HANDLE *dh, char *buffer, int max);
+int nats_write_message(DF_HANDLE *dh, char *buffer);
+void nats_close(DF_HANDLE *dh);
 
 #endif
-
