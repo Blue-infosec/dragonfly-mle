@@ -22,72 +22,7 @@
 
 #include "msgqueue.h"
 
-#define QUANTUM 50000
-/*
- * ---------------------------------------------------------------------------------------
- *
- * ---------------------------------------------------------------------------------------
- */
-void msgqueue_reset(const char *queue_name, int msg_max, long queue_max)
-{
-#ifdef __DEBUG3__
-	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
-#endif
-#ifdef COMMENT_OUT
-	char buffer[4096];
-	char reset_msg[1024];
-	struct timespec tm;
-	snprintf(reset_msg, sizeof(reset_msg), "%s-###################", queue_name);
-	const int length = strlen(reset_msg);
-
-	struct mq_attr attr;
-	attr.mq_maxmsg = queue_max;
-	attr.mq_msgsize = msg_max;
-	attr.mq_curmsgs = 0;
-
-	/* create the message queue */
-	mqd_t mq = mq_open(queue_name, O_CLOEXEC | O_RDWR, 0644, &attr);
-	if (mq > 0)
-	{
-		/*
-	 	 *
-	     */
-		clock_gettime(CLOCK_REALTIME, &tm);
-		tm.tv_sec += 2;
-		int n = mq_timedsend(mq, reset_msg, length, 1, &tm);
-		if (n < 0)
-		{
-			if (errno != ETIMEDOUT)
-			{
-				syslog(LOG_ERR, "mq_timedsend() error: %d - %s", errno, strerror(errno));
-				fprintf(stderr, "mq_timedsend() error: %d - %s\n", errno, strerror(errno));
-			}
-			mq_close(mq);
-			return;
-		}
-		/*
-		 *
-		 */
-		do
-		{
-			n = mq_receive(mq, buffer, msg_max, NULL);
-			if (n < 0)
-			{
-				syslog(LOG_ERR, "mq_receive() error: %d - %s", errno, strerror(errno));
-				fprintf(stderr, "mq_receive() error: %d - %s\n", errno, strerror(errno));
-				mq_close(mq);
-				return;
-			}
-			if (strncmp(buffer, reset_msg, length) == 0)
-			{
-				break;
-			}
-		} while (1);
-		mq_close(mq);
-		mq_unlink(queue_name);
-	}
-#endif
-}
+#define QUANTUM 5000
 
 /*
  * ---------------------------------------------------------------------------------------
@@ -105,7 +40,6 @@ queue_t *msgqueue_create(const char *queue_name, int msg_max, long queue_max)
 	if (pipe(q->pipefd) < 0)
 	{
 		syslog(LOG_ERR, "pipe() error: %s", strerror(errno));
-		fprintf(stderr, "pipe() error: %s", strerror(errno));
 		free(q);
 		exit(EXIT_FAILURE);
 	}
@@ -114,7 +48,6 @@ queue_t *msgqueue_create(const char *queue_name, int msg_max, long queue_max)
 	if (fcntl(q->pipefd[0], F_SETFD, flags))
 	{
 		syslog(LOG_ERR, "pipe() F_SETFD error: %s", strerror(errno));
-		fprintf(stderr, "pipe() F_SETFD error: %s", strerror(errno));
 		free(q);
 		exit(EXIT_FAILURE);
 	}
@@ -123,7 +56,6 @@ queue_t *msgqueue_create(const char *queue_name, int msg_max, long queue_max)
 	if (fcntl(q->pipefd[1], F_SETFD, flags))
 	{
 		syslog(LOG_ERR, "pipe() F_SETFD error: %s", strerror(errno));
-		fprintf(stderr, "pipe() F_SETFD error: %s", strerror(errno));
 		free(q);
 		exit(EXIT_FAILURE);
 	}
@@ -140,7 +72,7 @@ void msgqueue_cancel(queue_t *q)
 	if (!q || q->cancel)
 		return;
 	q->cancel = 1;
-	usleep(25000);
+	usleep(5000);
 }
 
 /*
@@ -196,7 +128,6 @@ int msgqueue_send(queue_t *q, const char *buffer, int length)
 			default:
 				if (!q->cancel)
 				{
-					fprintf(stderr, "%s: error: %d - %s\n", __FUNCTION__, errno, strerror(errno));
 					syslog(LOG_ERR, "%s: error: %d - %s", __FUNCTION__, errno, strerror(errno));
 					exit(EXIT_FAILURE);
 				}
@@ -236,13 +167,11 @@ int msgqueue_recv(queue_t *q, char *buffer, int max_size)
 				{
 				case ETIMEDOUT:
 				case EAGAIN:
-					//fprintf(stderr, "%s: EAGAIN(%i)\n", __FUNCTION__, errno);
 					usleep(QUANTUM_SLEEP);
 					break;
 				default:
 					if (!q->cancel)
 					{
-						fprintf(stderr, "%s: error: %d - %s\n", __FUNCTION__, errno, strerror(errno));
 						syslog(LOG_ERR, "%s: error: %d - %s", __FUNCTION__, errno, strerror(errno));
 						;
 						exit(EXIT_FAILURE);
@@ -250,11 +179,9 @@ int msgqueue_recv(queue_t *q, char *buffer, int max_size)
 					break;
 				}
 			}
-			//fprintf(stderr, "%s:recv length = %i\n", __FUNCTION__, l);
 			// need a better way to handle this
 			if (l > max_size)
 			{
-				fprintf(stderr, "%s: error: message bigger than buffer size\n", __FUNCTION__);
 				syslog(LOG_ERR, "%s: error: message bigger than buffer size", __FUNCTION__);
 				exit(EXIT_FAILURE);
 			}
@@ -269,15 +196,12 @@ int msgqueue_recv(queue_t *q, char *buffer, int max_size)
 				{
 				case ETIMEDOUT:
 				case EAGAIN:
-					//fprintf(stderr, "%s: EAGAIN(%i)\n", __FUNCTION__, errno);
 					usleep(QUANTUM_SLEEP);
 					break;
 				default:
 					if (!q->cancel)
 					{
-						fprintf(stderr, "%s: error: %d - %s\n", __FUNCTION__, errno, strerror(errno));
 						syslog(LOG_ERR, "%s: error: %d - %s", __FUNCTION__, errno, strerror(errno));
-
 						exit(EXIT_FAILURE);
 					}
 					break;
@@ -293,3 +217,4 @@ int msgqueue_recv(queue_t *q, char *buffer, int max_size)
  *
  * ---------------------------------------------------------------------------------------
  */
+

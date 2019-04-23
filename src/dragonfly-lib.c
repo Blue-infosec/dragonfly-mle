@@ -1217,6 +1217,7 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
         msgqueue_destroy(g_analyzer_list[i].queue);
         g_analyzer_list[i].queue = NULL;
     }
+    
     exit(EXIT_SUCCESS);
 }
 
@@ -1235,7 +1236,7 @@ static void create_message_queues()
             char analyzer_name[1024];
             snprintf(analyzer_name, sizeof(analyzer_name), "%s-%d", QUEUE_ANALYZER, i);
 
-            g_analyzer_list[i].queue = msgqueue_create(analyzer_name, _MAX_BUFFER_SIZE_, MAX_QUEUE_LENGTH);
+            g_analyzer_list[i].queue = msgqueue_create(analyzer_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
         }
     }
     for (int i = 0; i < MAX_INPUT_STREAMS; i++)
@@ -1246,7 +1247,7 @@ static void create_message_queues()
             {
                 char input_name[1024];
                 snprintf(input_name, sizeof(input_name), "%s-%d", QUEUE_INPUT, i);
-                g_input_list[i].queue = msgqueue_create(input_name, _MAX_BUFFER_SIZE_, MAX_QUEUE_LENGTH);
+                g_input_list[i].queue = msgqueue_create(input_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
             }
         }
     }
@@ -1257,7 +1258,7 @@ static void create_message_queues()
         {
             char output_name[PATH_MAX];
             snprintf(output_name, sizeof(output_name), "%s-%d-%s", QUEUE_OUTPUT, i, g_output_list[i].tag);
-            g_output_list[i].queue = msgqueue_create(output_name, _MAX_BUFFER_SIZE_, MAX_QUEUE_LENGTH);
+            g_output_list[i].queue = msgqueue_create(output_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
         }
     }
 }

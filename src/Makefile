@@ -9,12 +9,12 @@ GIT_VERSION = $(shell git describe --abbrev=4 --always --tags)
 # 
 # ------------------------------------------------------------------
 LINUX_CC = gcc
-LINUX_CFLAGS = -O2 -Wall -march=native -Werror
+LINUX_CFLAGS = -g -O2 -Wall -march=native -Werror
 BSD_CC = cc
 BSD_CFLAGS = -O2 -Wall -march=native -Werror -Wno-error=tautological-pointer-compare
 
-INCLUDES = -I. -I/usr/local/include -I./io -I./test -I./lib/msgqueue -I./resp \
-	   -I./lib/lua-cjson -I./lib/lua-hiredis -I./lib/lua-marshal
+INCLUDES = -I. -I/usr/local/include -I./io -I./test \
+	   -I./lib/lua-cjson -I./lib/lua-hiredis -I./lib/lua-marshal  \
 
 LIBS = -lpthread -lluajit-5.1 -lhiredis -lm -lcurl -lrt -lz -lmicrohttpd
 LFLAGS = -L. -L/usr/local/lib
@@ -35,7 +35,7 @@ UNIT_SRC = unit-test.c
 # library ore files
 # -----------------------------------------------------------------
 SRCS0 = dragonfly-lib.c dragonfly-io.c dragonfly-cmds.c config.c \
-	webservice.c 
+	webservice.c msgqueue.c
 
 # ------------------------------------------------------------------
 # I/O modules
@@ -48,7 +48,7 @@ SRCS1 = io/io-file.c io/io-pipe.c io/io-tail.c io/io-syslog.c \
 # ------------------------------------------------------------------
 SRCS3 = lib/lua-hiredis/lua-hiredis.c lib/lua-cjson/lua-cjson.c \
         lib/lua-cjson/strbuf.c lib/lua-cjson/fpconv.c \
-        lib/msgqueue/msgqueue.c lib/lua-marshal/lmarshal.c
+        lib/lua-marshal/lmarshal.c 
 
 # ------------------------------------------------------------------
 # unit test files
