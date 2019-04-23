@@ -39,12 +39,10 @@
 #define DF_IN_TAIL_TYPE 5
 #define DF_IN_ZFILE_TYPE 6
 #define DF_OUT_ZFILE_TYPE 7
-#define DF_IN_KAFKA_TYPE 8
-#define DF_OUT_KAFKA_TYPE 9
-#define DF_CMD_SURICATA 10
-#define DF_IPFIX  11
+#define DF_IN_NATS_TYPE 8
+#define DF_OUT_NATS_TYPE 9
 
-#define DF_MAX_BUFFER_LEN 2048
+#define DF_MAX_BUFFER_LEN 4096
 
 typedef struct _DF_HANDLE_
 { 
@@ -55,6 +53,7 @@ typedef struct _DF_HANDLE_
     int interval;
     int io_type;
     char *path;
+    char *tag;
     void *ptr;
 } DF_HANDLE;
 

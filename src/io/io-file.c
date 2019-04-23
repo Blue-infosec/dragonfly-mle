@@ -50,7 +50,7 @@ DF_HANDLE *file_open(const char *path, int spec)
 
         if (*path == '/')
         {
-                strncpy(file_path, path, PATH_MAX);
+                strncpy(file_path, path, sizeof(file_path)-1);
         }
         else
         {

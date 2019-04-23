@@ -703,7 +703,7 @@ static void json_append_data(lua_State *l, json_config_t *cfg,
     }
 }
 
-int json_encode(lua_State *l)
+static int json_encode(lua_State *l)
 {
     json_config_t *cfg = json_fetch_config(l);
     strbuf_t local_encode_buf;
@@ -1253,7 +1253,7 @@ static void json_process_value(lua_State *l, json_parse_t *json,
     }
 }
 
-int json_decode(lua_State *l)
+static int json_decode(lua_State *l)
 {
     json_parse_t json;
     json_token_t token;
@@ -1411,6 +1411,7 @@ int luaopen_cjson(lua_State *l)
     /* Register a global "cjson" table. */
     lua_pushvalue(l, -1);
     lua_setglobal(l, CJSON_MODNAME);
+    /* force safe mode */
 
     /* Return cjson table */
     return 1;

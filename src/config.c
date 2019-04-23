@@ -264,7 +264,7 @@ int load_inputs_config(lua_State *L,  const char* filter_dir, INPUT_CONFIG input
                 }
                 else
                 {
-                    strncpy(script_path, path, PATH_MAX);
+                    strncpy(script_path, path, sizeof(script_path)-1);
                 }
                 if ((lstat(script_path, &sb) >= 0) && S_ISREG(sb.st_mode))
                 {
@@ -381,7 +381,7 @@ int load_analyzers_config(lua_State *L, const char* analyzer_dir, ANALYZER_CONFI
                 }
                 else
                 {
-                    strncpy(lua_analyzer, script_path, PATH_MAX);
+                    strncpy(lua_analyzer, script_path, sizeof(lua_analyzer)-1);
                 }
                 if ((lstat(lua_analyzer, &sb) >= 0) && S_ISREG(sb.st_mode))
                 {

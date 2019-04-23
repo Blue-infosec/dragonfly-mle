@@ -21,18 +21,15 @@
  *
  */
 
-#ifndef __PARAM_H__
-#define __PARAM_H__
+#ifndef _IO_NATS_H_
+#define _IO_NATS_H_
 
-#define MAX_WORKER_THREADS 1
-#define MAX_ANALYZER_STREAMS (16)
-#define MAX_INPUT_STREAMS (8)
-#define MAX_OUTPUT_STREAMS (4+2)
-#define MAX_RESPONDER_COMMANDS (2)
-#define MAX_REDIS_MODULES   8
-#define MAX_RING_BUFFER_SIZE (524288)
-#define DEFAULT_STATS_INTERVAL 60
-
-#define _MAX_BUFFER_SIZE_ (32768)
+/*
+ * Pipe IO
+ */
+DF_HANDLE *nats_open(const char *path, int spec);
+int nats_read_message(DF_HANDLE *dh, char *buffer, int max);
+int nats_write_message(DF_HANDLE *dh, char *buffer);
+void nats_close(DF_HANDLE *dh);
 
 #endif

@@ -281,7 +281,7 @@ int ipc_write_message(DF_HANDLE *dh, char *buffer)
                         case EINVAL:
                                 break;
                         default:
-                                syslog(LOG_ERR, "send error: %s", strerror(errno));
+                                syslog(LOG_ERR, "ipc send error: %s", strerror(errno));
                                 perror("send");
                                 exit(EXIT_FAILURE);
                         }

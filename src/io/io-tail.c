@@ -52,7 +52,7 @@
 static int tail_open_nonblock_file(const char *path)
 {
         char buffer[PATH_MAX];
-        strncpy(buffer, path, PATH_MAX);
+        strncpy(buffer, path, sizeof(buffer)-1);
         int whence = strnlen(buffer, PATH_MAX);
         if (whence > 0)
                 whence--;
@@ -113,7 +113,7 @@ DF_HANDLE *tail_open(const char *path, int spec)
 
         if (*path == '/')
         {
-                strncpy(file_path, path, PATH_MAX);
+                strncpy(file_path, path, sizeof(file_path)-1);
         }
         else
         {
@@ -146,9 +146,6 @@ DF_HANDLE *tail_open(const char *path, int spec)
         dh->fd = fd;
         dh->io_type = io_type;
         dh->path = strndup(file_path, PATH_MAX);
-#ifdef __DEBUG3__
-        syslog(LOG_INFO, "%s: %s", __FUNCTION__, path);
-#endif
         return dh;
 }
 
@@ -167,6 +164,7 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
         struct stat fdstat;
         int end_of_line = 0;
         int i = 0;
+
         do
         {
                 if (dh->fd < 0)
@@ -177,6 +175,7 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
                                 open_failures++;
                                 if (open_failures > 5)
                                 {
+                                	syslog(LOG_ERR, "unable to open the file %s\n", dh->path);
                                         return -1;
                                 }
                                 usleep(50000);
@@ -208,15 +207,14 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
                         {
                                 syslog(LOG_ERR, "unable to fstat: %s\n", strerror(errno));
                         }
-#ifdef __DEBUG3__
-                        fprintf(stderr, "file size: %lld bytes\n", (long long)fdstat.st_size);
-#endif
+
                         if (fdstat.st_size < lastFileSize)
                         {
                                 syslog(LOG_INFO, "%s: file size changed to %lld; possibly truncated.", __FUNCTION__, (long long)fdstat.st_size);
                                 lseek(dh->fd, 0, SEEK_SET);
                                 i = 0;
                         }
+
                         lastFileSize = fdstat.st_size;
                         current_read_time = time(NULL);
                         if ((current_read_time - last_read_time) >= FIVE_SECONDS)
@@ -247,7 +245,6 @@ static int tail_next_line(DF_HANDLE *dh, char *buffer, int len)
                 else if (buffer[i] == '\n')
                 {
                         end_of_line = 1;
-                        //fprintf (stderr,"%s: %lu\n", __FUNCTION__, g_counter++);
                 }
                 else
                 {

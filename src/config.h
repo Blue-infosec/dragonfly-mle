@@ -33,6 +33,8 @@
 #define ANALYZER_DIR "analyzer"
 #define CONFIG_DIR "config"
 #define CONFIG_FILE "config/config.lua"
+#define FLUENT_FILE_PLUGIN "file"
+#define FLUENT_STDOUT_PLUGIN "stdout"
 
 #define WEB_DIR "/www/"
 #define WEB_PORT (7070)
@@ -57,7 +59,7 @@ typedef struct _MLE_TIMER_
     time_t epoch;
     size_t length;
     char *tag;
-    char *msgpack;
+    char *message;
     queue_t *queue;
 } MLE_TIMER;
 

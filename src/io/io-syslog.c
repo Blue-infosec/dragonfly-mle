@@ -51,6 +51,7 @@ DF_HANDLE *syslog_open(const char *path, int spec)
 #ifdef __DEBUG3__
                 fprintf(stderr, "%s: %s (DF_OUT)\n", __FUNCTION__, path);
 #endif
+		// only support "local" facility
                 if (path[0]=='L' && path[1]=='O' && path[2]=='G' && path[3]=='_' &&
                     path[4]=='L' && path[5]=='O' && path[6]=='C' && path[7]=='A' && path[8]=='L')
                 {
