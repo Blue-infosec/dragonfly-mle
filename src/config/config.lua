@@ -42,7 +42,7 @@ analyzers = {
    -- ---------------------------------------------------------
    -- Hello World example 
    -- ---------------------------------------------------------
-   { tag="hello", script="hello-world.lua", default_analyzer="sink", default_output="out" },
+   { tag="hello", script="hello-world.lua", default_analyzer="output", default_output="out" },
    { tag="output", script="write-to-log.lua" , default_analyzer="", default_output="out"} 
 }
 

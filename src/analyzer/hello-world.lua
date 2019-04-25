@@ -55,5 +55,5 @@ function loop(msg)
     -- Add a new field to the event type
     eve["event_count"] = count 
     -- Pass the event along to the next analyzer
-	dragonfly.output_event (default_analyzer, eve)
+	dragonfly.analyze_event (default_analyzer, eve)
 end
