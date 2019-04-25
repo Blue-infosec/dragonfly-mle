@@ -60,7 +60,7 @@ static const char *INPUT_LUA =
 	"end\n"
 	"\n"
 	"function loop(msg)\n"
-	"   local tbl = cjson.decode(msg)\n"
+	"   local tbl = msg\n"
 	"end\n";
 
 static const char *ANALYZER_LUA =
