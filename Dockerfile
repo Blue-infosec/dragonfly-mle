@@ -14,21 +14,21 @@ RUN rm -rf dragonfly-mle
 # Build redis
 #
 RUN git clone https://github.com/antirez/redis.git; \
-    cd redis/src; make ; make install
+    cd redis/src; make -j ; make install
 RUN rm -rf redis
 #
 # Build redis ML
 #
 RUN git clone https://github.com/RedisLabsModules/redis-ml.git; \
     cd redis-ml/src; \
-    make ; \
+    make -j ; \
     mkdir /usr/local/lib ; \
     cp redis-ml.so /usr/local/lib
 RUN rm -rf redis-ml
 #
 #
 #
-RUN mkdir /opt/suricata/; mkdir /opt/suricata/var
+RUN mkdir -p /opt/suricata/var
 RUN apt-get purge -y build-essential git make; apt-get -y autoremove
 #
 WORKDIR /usr/local/dragonfly-mle

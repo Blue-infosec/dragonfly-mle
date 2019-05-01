@@ -15,7 +15,7 @@
  * 02110-1301, USA.
  */
 
-/* 
+/*
  *
  * author Randy Caldejon <rc@counterflowai.com>
  *
@@ -31,6 +31,7 @@
 #define MAX_RESPONDER_COMMANDS (2)
 #define MAX_REDIS_MODULES   8
 #define MAX_RING_BUFFER_SIZE (524288)
+// TODO make STATS_INTERVAL a config option
 #define DEFAULT_STATS_INTERVAL 60
 
 #define _MAX_BUFFER_SIZE_ (32768)
