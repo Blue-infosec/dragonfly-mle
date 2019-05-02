@@ -1,7 +1,7 @@
 {
-    "id": "alert",
+    "id": "hello",
     "version":"1.0.0",
-    "name": "Example Alert",
+    "name": "Hello World",
     "description": "Simple analyzer to decode json and output to file",
     "features": {}
 }

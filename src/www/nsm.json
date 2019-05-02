@@ -1,7 +1,0 @@
-{
-    "id": "nsm",
-    "version": "1.0.0",
-    "name": "Example NSM",
-    "description": "Example analyzer for injecting information in the eve.json output",
-    "features": {}
-}

@@ -32,8 +32,7 @@ redis_port = "6379"
 -- Input queues/processors
 -- -----------------------------------------------------------
 inputs = {
-   { tag="eve", uri="tail:///opt/suricata/var/log/suricata/eve.json", script="suricata-filter.lua", default_analyzer="alert"}, --Split messages based on type
-   --{ tag="flow2", uri="ipc://flow-ipc.log", script="passthrough-filter.lua"}
+   { tag="eve", uri="tail:///opt/suricata/var/log/suricata/eve.json", script="simple-filter.lua", default_analyzer="hello"}, 
 }
 
 -- -----------------------------------------------------------
@@ -41,37 +40,17 @@ inputs = {
 -- -----------------------------------------------------------
 analyzers = {
    -- ---------------------------------------------------------
-   -- General examples 
+   -- Hello World example 
    -- ---------------------------------------------------------
-   { tag="alert", script="example-alert.lua", default_analyzer="", default_output="log" }, -- No-op alert analyzer
-   { tag="nsm", script="example-nsm.lua" , default_analyzer="", default_output="log"}, -- Simple JSON annotator example
-   -- { tag="tls", script="example-tls.lua" }, -- Third-party lookup
-   -- { tag="dns", script="example-dns.lua" }, -- Third-party lookup
-   -- { tag="flow", script="example-flow.lua" }, -- Third-party lookup
-   
-   -- ---------------------------------------------------------
-   -- Advanced Analytics examples using Redis
-   -- ---------------------------------------------------------
-   -- { tag="flow1", script="example-hll.lua" }, -- Counting Unique Connections with HyperLogLog
-   -- { tag="flow2", script="example-mad.lua" }, -- Flow Outliers using Median Absolute Deviation (MAD)
-
-   -- ---------------------------------------------------------
-   -- Machine learning examples using Redis-ML
-   -- ---------------------------------------------------------
-   -- { tag="dga", script="dga/dga-lr-mle.lua" }, --DGA detector w/ Logistic Regression
-   -- { tag="dga", script="dga/dga-rf-mle.lua" }, --DGA detector w/ Random Forest
-
+   { tag="hello", script="hello-world.lua", default_analyzer="output", default_output="out" },
+   { tag="output", script="write-to-log.lua" , default_analyzer="", default_output="out"} 
 }
 
 -- -----------------------------------------------------------
 -- Output using fluentbit.io library
 -- -----------------------------------------------------------
 outputs = {
-    { tag="log", uri="file://dragonfly-example.log"},
-    { tag="stdout", uri="file://dragonfly-example.log"},
-    -- { tag="flow2", uri="ipc://flow-ipc.log"},
-    -- { tag="tls", uri="file://tls-alerts.log"},
-    -- { tag="dns", uri="file://dns-alerts.log"},
-    -- { tag="flow", uri="file://flow-alerts.log"},
+    { tag="out", uri="file://eve-mle.log"},
+    { tag="debug", uri="file://debug.log"},
 }
 
