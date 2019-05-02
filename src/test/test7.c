@@ -62,8 +62,7 @@ static const char *INPUT_LUA =
 	"\n"
 	"function loop(msg)\n"
 	"   -- print (msg)\n"
-	"   local tbl = cjson_safe.decode(msg)\n"
-	"   dragonfly.analyze_event (default_analyzer, tbl)\n"
+	"   dragonfly.analyze_event (default_analyzer, msg)\n"
 	"end\n";
 
 static const char *ANALYZER_LUA =
