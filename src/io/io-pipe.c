@@ -100,13 +100,16 @@ static int ipc_reopen(DF_HANDLE *dh)
 #endif
         return 0;
 }
-#ifdef COMMENT_OUT
+
 /*
  * ---------------------------------------------------------------------------------------
  *
  * ---------------------------------------------------------------------------------------
  */
-static int ipc_set_nonblock(int fd)
+
+/* unused code block
+
+ static int ipc_set_nonblock(int fd)
 {
         int fd_flags = fcntl(fd, F_GETFL);
         if (fd_flags < 0)
@@ -123,7 +126,7 @@ static int ipc_set_nonblock(int fd)
         }
         return fd;
 }
-#endif
+*/
 
 /*
  * ---------------------------------------------------------------------------------------
@@ -276,7 +279,7 @@ int ipc_write_message(DF_HANDLE *dh, char *buffer)
                                 break;
                         case ENOBUFS:
                                 break;
-                        case EAGAIN:
+                        case EAGAIN: // Same as EWOULDBLOCK for async mode(s)
                                 break;
                         case EINVAL:
                                 break;

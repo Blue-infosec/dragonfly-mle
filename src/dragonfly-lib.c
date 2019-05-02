@@ -50,7 +50,7 @@
 #include "lua-cjson.h"
 #include "lmarshal.h"
 
-#include "mqueue.h"
+#include "msgqueue.h"
 
 #include "dragonfly-lib.h"
 #include "dragonfly-cmds.h"

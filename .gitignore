@@ -1,6 +1,16 @@
 .dragonfly-mle.code-workspace
 .vscode
 .deps/
+#cmake build folder
+cmake-build-debug
+# Built executables
+src/dragonfly-mle
+src/dragonfly-test
+src/dragonfly-bench
+
+# IDE config folder
+.idea
+
 # Prerequisites
 *.d
 

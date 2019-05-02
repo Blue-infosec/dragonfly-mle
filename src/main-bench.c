@@ -17,7 +17,7 @@
 
 /* 
  *
- * author Randy Caldejon <rc@counterflowai.com>
+ * author Don Rude <dr@counterflowai.com>
  *
  */
 
@@ -44,34 +44,11 @@
 #endif
 
 #include "dragonfly-lib.h"
+#include "benchmark/benchmark.h"
 
 int g_chroot = 0;
 int g_verbose = 0;
 int g_drop_priv = 0;
-
-
-/*
- * ---------------------------------------------------------------------------------------
- *
- * ---------------------------------------------------------------------------------------
- */
-
-void print_version()
-{
-	printf("\nDragonFly Machine Learning Engine (MLE)\nVersion: %s\n\n", MLE_VERSION);
-}
-
-/*
- * ---------------------------------------------------------------------------------------
- *
- * ---------------------------------------------------------------------------------------
- */
-
-void print_usage()
-{
-	printf("Usage: dragonfly [-c -p -r <root dir> -l <log dir>] -v -V\n");
-}
-
 
 /*
  * ---------------------------------------------------------------------------------------
@@ -81,64 +58,16 @@ void print_usage()
 
 int main(int argc, char **argv)
 {
-	int option = 0;
-	char *dragonfly_log = NULL;
-	char *dragonfly_root = DRAGONFLY_ROOT_DIR;
-
-	while ((option = getopt(argc, argv, "cflpr:vV")) != -1)
-	{
-		switch (option)
-		{
-			/* chroot */
-		case 'c':
-			g_chroot = 1;
-			break;
-
-			/* drop privilege */
-		case 'p':
-			g_drop_priv = 1;
-			break;
-
-			/* root directory */
-		case 'r':
-			dragonfly_root = strndup(optarg, PATH_MAX);
-			break;
-
-			/* log directory */
-		case 'l':
-			dragonfly_log = strndup(optarg, PATH_MAX);
-			break;
-
-			/* verbose */
-		case 'v':
-			g_verbose = 1;
-			break;
-
-			/* version */
-		case 'V':
-			print_version ();
-			exit(EXIT_SUCCESS);
-			break;
-
-		default:
-			print_usage();
-			exit(EXIT_SUCCESS);
-		}
-	}
-
+	
 #ifdef _GNU_SOURCE
 	pthread_setname_np(pthread_self(), "dragonfly");
 #endif
 
 	openlog("dragonfly", LOG_PERROR, LOG_USER);
-
-	// TODO remove this config based unit test runner or remove unit-test.c
-#ifdef RUN_UNIT_TESTS
-	dragonfly_mle_test(TMP_DIR);
-#endif
-	dragonfly_mle_run(dragonfly_root, dragonfly_log, DRAGONFLY_RUN_DIR);
-
+	fprintf (stdout, "Running benchmarks for dragonfly-mle\n");
+	dragonfly_mle_bench(TMP_DIR);
 	closelog();
+    
 	exit(EXIT_SUCCESS);
 }
 
