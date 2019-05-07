@@ -61,7 +61,10 @@ SRCS4 = test/test.c test/test0.c test/test1.c test/test2.c \
 # ------------------------------------------------------------------
 # benchmarking files
 # ------------------------------------------------------------------
-SRCS5 = benchmark/benchmark.c benchmark/bench0.c benchmark/bench1.c benchmark/bench2.c benchmark/bench3.c
+SRCS5 = benchmark/benchmark.c \
+		benchmark/bench0.c benchmark/bench1.c benchmark/bench2.c \
+		benchmark/bench3.c benchmark/bench4.c benchmark/bench5.c \
+		benchmark/bench6.c
 
 
 MAIN_OBJS = $(MAIN_SRC:.c=.o) $(SRCS0:.c=.o) $(SRCS1:.c=.o) $(SRCS2:.c=.o) $(SRCS3:.c=.o)

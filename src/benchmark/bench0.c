@@ -42,16 +42,15 @@
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\", default_analyzer=\"bench0\"}\n"
+	"   { tag=\"LUAinput\", uri=\"ipc://input.ipc\", script=\"filter.lua\", default_analyzer=\"bench0\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
-	"    { tag=\"bench0\", script=\"analyzer.lua\", default_analyzer=\"\", default_output=\"log0\" },\n"
+	"    { tag=\"bench0-analyzer\", script=\"analyzer.lua\", default_analyzer=\"\", default_output=\"bench0-log\" },\n"
 	"}\n"
 	"\n"
 	"outputs = {\n"
-    "    { tag=\"log0\", uri=\"file:///dev/null\"},\n"
-//    "    { tag=\"log0\", uri=\"file:///tmp/benchmark.log\"},\n"
+    "    { tag=\"bench0-log\", uri=\"file:///dev/null\"},\n"
 	"}\n"
 	"\n";
 
@@ -60,7 +59,6 @@ static const char *INPUT_LUA =
 	"end\n"
 	"\n"
 	"function loop(msg)\n"
-//	"   dragonfly.analyze_event(default_analyzer, msg)\n"
   "   -- do nothing\n"
 	"end\n";
 
@@ -68,7 +66,6 @@ static const char *ANALYZER_LUA =
 	"function setup()\n"
 	"end\n"
 	"function loop (msg)\n"
-//	"  dragonfly.output_event (default_output, msg)\n"
     "  -- do nothing\n"
 	"end\n\n";
 /*
@@ -109,7 +106,7 @@ void SELF_BENCH0(const char *dragonfly_root)
 	signal(SIGPIPE, SIG_IGN);
 	openlog("dragonfly", LOG_PERROR, LOG_USER);
 #ifdef _GNU_SOURCE
-	pthread_setname_np(pthread_self(), "dragonfly");
+	pthread_setname_np(pthread_self(), "bench0-dragonfly");
 #endif
 	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
 	startup_threads();
@@ -139,7 +136,7 @@ void SELF_BENCH0(const char *dragonfly_root)
 			clock_t mark_time = clock();
 			double elapsed_time = ((double)(mark_time - last_time)) / CLOCKS_PER_SEC; // in seconds
 			double ops_per_sec = QUANTUM / elapsed_time;
-			fprintf(stdout, "\t%6.2f/sec\n", ops_per_sec);
+			fprintf(stdout, "%6.2f /sec\n", ops_per_sec);
 			last_time = clock();
 		}
 	}

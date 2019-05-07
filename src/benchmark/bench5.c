@@ -36,37 +36,38 @@
 
 #include "benchmark.h"
 
-#define MAX_BENCH3_MESSAGES 100000
-#define QUANTUM (MAX_BENCH3_MESSAGES / 10)
+#define MAX_BENCH5_MESSAGES 100000
+#define QUANTUM (MAX_BENCH5_MESSAGES / 10)
 
 static const char *CONFIG_LUA =
 	"inputs = {\n"
-	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\", default_analyzer=\"bench3\"}\n"
+	"   { tag=\"input\", uri=\"ipc://input.ipc\", script=\"filter.lua\", default_analyzer=\"bench5\"}\n"
 	"}\n"
 	"\n"
 	"analyzers = {\n"
-	"    { tag=\"bench3\", script=\"analyzer.lua\", default_analyzer=\"\", default_output=\"bench3-log\" },\n"
+	"    { tag=\"bench5\", script=\"analyzer.lua\", default_analyzer=\"\", default_output=\"bench5-log\"},\n"
 	"}\n"
 	"\n"
 	"outputs = {\n"
-    "    { tag=\"bench3-log\", uri=\"file:///tmp/bench3.log\"},\n"
+	"    { tag=\"bench5-log\", uri=\"file://bench5.log\"},\n"
 	"}\n"
 	"\n";
 
 static const char *INPUT_LUA =
 	"function setup()\n"
 	"end\n"
-	"\n"
 	"function loop(msg)\n"
-	"   dragonfly.analyze_event(default_analyzer, msg)\n"
+	"   dragonfly.analyze_event (default_analyzer, msg)\n"
 	"end\n";
 
-static const char *ANALYZER_LUA =
+const char *ANALYZER_LUA =
 	"function setup()\n"
+	"  conn = assert(hiredis.connect())\n"
 	"end\n"
-	"function loop (msg)\n"
-	"  dragonfly.output_event (default_output, msg)\n"
+	"function loop (tbl)\n"
+	"   assert(conn:command(\"PING\") == hiredis.status.PONG)\n"
 	"end\n\n";
+
 /*
  * ---------------------------------------------------------------------------------------
  *
@@ -74,7 +75,7 @@ static const char *ANALYZER_LUA =
  */
 static void write_file(const char *file_path, const char *content)
 {
-//	fprintf(stderr, "generated %s\n", file_path);
+	fprintf(stderr, "generated %s\n", file_path);
 	FILE *fp = fopen(file_path, "w+");
 	if (!fp)
 	{
@@ -90,9 +91,9 @@ static void write_file(const char *file_path, const char *content)
  *
  * ---------------------------------------------------------------------------------------
  */
-void SELF_BENCH3(const char *dragonfly_root)
+void SELF_BENCH5(const char *dragonfly_root)
 {
-	fprintf(stdout, "\n%s: pumping %d messages: input, no-op, and output to file on disk\n", __FUNCTION__, MAX_BENCH3_MESSAGES);
+	fprintf(stdout, "\n\n%s: sending %u messages, pinging redis each time\n", __FUNCTION__, MAX_BENCH5_MESSAGES);
 	fprintf(stdout, "-------------------------------------------------------\n");
 	/*
 	 * generate lua scripts
@@ -101,43 +102,43 @@ void SELF_BENCH3(const char *dragonfly_root)
 	write_file(CONFIG_TEST_FILE, CONFIG_LUA);
 	write_file(FILTER_TEST_FILE, INPUT_LUA);
 	write_file(ANALYZER_TEST_FILE, ANALYZER_LUA);
-
+	
 	signal(SIGPIPE, SIG_IGN);
 	openlog("dragonfly", LOG_PERROR, LOG_USER);
 #ifdef _GNU_SOURCE
-	pthread_setname_np(pthread_self(), "bench3-dragonfly");
+	pthread_setname_np(pthread_self(), "dragonfly-bench5");
 #endif
 	initialize_configuration(dragonfly_root, dragonfly_root, dragonfly_root);
 	startup_threads();
 
 	sleep(1);
-
 	DF_HANDLE *pump = dragonfly_io_open("ipc://input.ipc", DF_OUT);
 	if (!pump)
 	{
 		fprintf(stderr, "%s: dragonfly_io_open() failed.\n", __FUNCTION__);
-		return;
+		abort();
 	}
 
+	sleep(1);
+
     char *msg = MSG;
-	clock_t last_time = clock();
-	for (unsigned long i = 0; i < MAX_BENCH3_MESSAGES; i++)
+    clock_t last_time = clock();
+	for (unsigned long i = 0; i < MAX_BENCH5_MESSAGES; i++)
 	{
+        if (dragonfly_io_write(pump, msg) < 0)
+        {
+            fprintf(stderr, "error pumping to \"ipc://input.ipc\"\n");
+            abort();
+        }
 
-		if (dragonfly_io_write(pump, msg) < 0)
-		{
-			fprintf(stderr, "error pumping to \"ipc://input.ipc\"\n");
-			abort();
-		}
-
-		if ((i > 0) && (i % QUANTUM) == 0)
-		{
-			clock_t mark_time = clock();
-			double elapsed_time = ((double)(mark_time - last_time)) / CLOCKS_PER_SEC; // in seconds
-			double ops_per_sec = QUANTUM / elapsed_time;
-			fprintf(stdout, "%6.2f /sec\n", ops_per_sec);
-			last_time = clock();
-		}
+        if ((i > 0) && (i % QUANTUM) == 0)
+        {
+            clock_t mark_time = clock();
+            double elapsed_time = ((double)(mark_time - last_time)) / CLOCKS_PER_SEC; // in seconds
+            double ops_per_sec = QUANTUM / elapsed_time;
+            fprintf(stdout, "%6.2f /sec\n", ops_per_sec);
+            last_time = clock();
+        }
 	}
 	dragonfly_io_close(pump);
 	sleep(1);
@@ -155,4 +156,3 @@ void SELF_BENCH3(const char *dragonfly_root)
 /*
  * ---------------------------------------------------------------------------------------
  */
-
