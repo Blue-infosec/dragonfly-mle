@@ -34,11 +34,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include "config.h"
 #include "benchmark.h"
-
-#include "dragonfly-lib.h"
-#include "dragonfly-io.h"
 
 #define WAIT_INTERVAL 1
 
@@ -76,6 +72,22 @@ void dragonfly_mle_bench(const char *dragonfly_root)
 	snprintf(config_dir, sizeof(config_dir), "%s/%s", dragonfly_root, CONFIG_DIR);
 	mkdir(config_dir, 0755);
 
+	fprintf(stdout,"Timing basic C-loop\n");
+    fprintf(stdout, "-------------------------------------------------------\n");
+    clock_t last_time = clock();
+    for (unsigned long i = 0; i < (1uL<<28); i++)
+    {
+
+        if ((i > 0) && (i % (1uL<<25) ) == 0)
+        {
+            clock_t mark_time = clock();
+            double elapsed_time = ((double)(mark_time - last_time)) / CLOCKS_PER_SEC; // in seconds
+            double ops_per_sec = 500000 / elapsed_time;
+            fprintf(stdout, "%6.2f /sec\n", ops_per_sec);
+            last_time = clock();
+        }
+    }
+
 	SELF_BENCH0(dragonfly_root);
 	sleep(WAIT_INTERVAL);
 
@@ -86,6 +98,15 @@ void dragonfly_mle_bench(const char *dragonfly_root)
     sleep(WAIT_INTERVAL);
 
     SELF_BENCH3(dragonfly_root);
+    sleep(WAIT_INTERVAL);
+
+    SELF_BENCH4(dragonfly_root);
+    sleep(WAIT_INTERVAL);
+
+    SELF_BENCH5(dragonfly_root);
+    sleep(WAIT_INTERVAL);
+
+    SELF_BENCH6(dragonfly_root);
     sleep(WAIT_INTERVAL);
 
     rmdir(analyzer_dir);

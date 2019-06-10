@@ -78,6 +78,11 @@ add_executable(dragonfly-bench
         benchmark/bench1.c
         benchmark/bench2.c
         benchmark/bench3.c
+        benchmark/bench4.c
+        benchmark/bench5.c
+        benchmark/bench6.c
         ${SOURCE_FILES})
 
-add_executable(dragonfly-mle main.c ${SOURCE_FILES})
+add_executable(dragonfly-mle
+        main.c
+        ${SOURCE_FILES})

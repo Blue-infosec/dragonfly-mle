@@ -21,6 +21,10 @@
  *
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <sys/un.h>
 #include <string.h>
 #include <stdlib.h>
@@ -60,7 +64,7 @@ int main(int argc, char **argv)
 {
 	
 #ifdef _GNU_SOURCE
-	pthread_setname_np(pthread_self(), "dragonfly");
+	pthread_setname_np(pthread_self(), "dragonfly-main");
 #endif
 
 	openlog("dragonfly", LOG_PERROR, LOG_USER);

@@ -25,8 +25,8 @@
 #define _BENCHMARK_H_
 
 
-#include "dragonfly-lib.h"
-#include "dragonfly-io.h"
+#include "../dragonfly-lib.h"
+#include "../dragonfly-io.h"
 
 
 #define ANALYZER_TEST_FILE "analyzer/analyzer.lua"
@@ -39,4 +39,7 @@ void SELF_BENCH0(const char *dragonfly_root);
 void SELF_BENCH1(const char *dragonfly_root);
 void SELF_BENCH2(const char *dragonfly_root);
 void SELF_BENCH3(const char *dragonfly_root);
+void SELF_BENCH4(const char *dragonfly_root);
+void SELF_BENCH5(const char *dragonfly_root);
+void SELF_BENCH6(const char *dragonfly_root);
 #endif
