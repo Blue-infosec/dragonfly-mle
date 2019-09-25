@@ -198,23 +198,6 @@ int dragonfly_io_read(DF_HANDLE *dh, char *buffer, int len)
  *
  * ---------------------------------------------------------------------------------------
  */
-int dragonfly_io_read_lines(DF_HANDLE *dh, char **buffer, int len, int max)
-{
-        if (!dh)
-                return -1;
-
-        if ((dh->io_type == DF_SERVER_IPC_TYPE) ||
-            (dh->io_type == DF_CLIENT_IPC_TYPE))
-        {
-                return ipc_read_messages(dh, buffer, len, max);
-        }
-        return -1;
-}
-/*
- * ---------------------------------------------------------------------------------------
- *
- * ---------------------------------------------------------------------------------------
- */
 void dragonfly_io_flush(DF_HANDLE *dh)
 {
         if (!dh)

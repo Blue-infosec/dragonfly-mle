@@ -22,43 +22,92 @@
 
 #include "msgqueue.h"
 
-#define QUANTUM 5000
+#define QUANTUM 50000
+
+// NOTE: the zmq context is shared across threads for the inproc transport
+static void *g_context = NULL;
 
 /*
  * ---------------------------------------------------------------------------------------
  *
  * ---------------------------------------------------------------------------------------
  */
-queue_t *msgqueue_create(const char *queue_name, int msg_max, long queue_max)
+void* msgqueue_init ()
 {
+	void *g_context = zmq_ctx_new ();
+
+	if (!g_context)
+	{
+		syslog(LOG_ERR, "%s: zmq_ctx_new error: %d - %s", __FUNCTION__, errno, zmq_strerror (errno));
+	}
+	return g_context;
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+void msgqueue_term ()
+{
+	if (g_context)
+		zmq_ctx_destroy (g_context);
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+queue_t *msgqueue_create(void *context, const char *queue_name, int msg_max, long queue_max)
+{
+#ifdef __DEBUG3__
+	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
+#endif
 	queue_t *q = (queue_t *)malloc(sizeof(queue_t));
 	if (!q)
 		return NULL;
 
 	memset(q, 0, sizeof(queue_t));
 	q->queue_name = strndup(queue_name, NAME_MAX);
-	if (pipe(q->pipefd) < 0)
+	q->context = context;
+
+	char uri [NAME_MAX];
+	char *p = q->queue_name;
+	if (*p=='/') p++;
+
+	snprintf (uri, NAME_MAX-1, "inproc://%s", p);
+
+	// pull end of queue
+    q->pull = zmq_socket (context, ZMQ_PAIR);
+	if (!q->pull)
 	{
-		syslog(LOG_ERR, "pipe() error: %s", strerror(errno));
-		free(q);
-		exit(EXIT_FAILURE);
+		syslog(LOG_ERR, "%s: zmq_socket error: %d - %s", __FUNCTION__, errno, zmq_strerror (errno));
+		return NULL;
 	}
-	int flags = fcntl(q->pipefd[0], F_GETFD);
-	flags |= O_NONBLOCK;
-	if (fcntl(q->pipefd[0], F_SETFD, flags))
+
+	int rc = zmq_bind(q->pull, uri); 
+	if (rc < 0) 
 	{
-		syslog(LOG_ERR, "pipe() F_SETFD error: %s", strerror(errno));
-		free(q);
-		exit(EXIT_FAILURE);
+		syslog(LOG_ERR, "%s: zmq_bind (%s) error: %d - %s", __FUNCTION__, uri, errno, zmq_strerror (errno));
+		return NULL;
 	}
-	flags = fcntl(q->pipefd[1], F_GETFD);
-	flags |= O_NONBLOCK;
-	if (fcntl(q->pipefd[1], F_SETFD, flags))
+
+	// push end of queue
+    q->push = zmq_socket (context, ZMQ_PAIR);
+	if (!q->push)
 	{
-		syslog(LOG_ERR, "pipe() F_SETFD error: %s", strerror(errno));
-		free(q);
-		exit(EXIT_FAILURE);
+		syslog(LOG_ERR, "%s: zmq_socket error: %d - %s", __FUNCTION__, errno, zmq_strerror (errno));
+		return NULL;
 	}
+
+	rc = zmq_connect(q->push, uri); 
+	if (rc < 0)
+	{
+		syslog(LOG_ERR, "%s: zmq_connect (%s) error: %d - %s", __FUNCTION__, uri, errno, zmq_strerror (errno));
+		return NULL;
+	}
+
 	return q;
 }
 
@@ -69,10 +118,13 @@ queue_t *msgqueue_create(const char *queue_name, int msg_max, long queue_max)
  */
 void msgqueue_cancel(queue_t *q)
 {
+#ifdef __DEBUG3__
+	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
+#endif
 	if (!q || q->cancel)
 		return;
 	q->cancel = 1;
-	usleep(5000);
+	usleep(25000);
 }
 
 /*
@@ -82,10 +134,13 @@ void msgqueue_cancel(queue_t *q)
  */
 void msgqueue_destroy(queue_t *q)
 {
+#ifdef __DEBUG3__
+	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
+#endif
 	if (!q)
 		return;
-	close(q->pipefd[0]);
-	close(q->pipefd[1]);
+	zmq_close(q->pull);
+	zmq_close(q->push);
 	free(q->queue_name);
 	free(q);
 	q = NULL;
@@ -98,6 +153,9 @@ void msgqueue_destroy(queue_t *q)
  */
 int msgqueue_send(queue_t *q, const char *buffer, int length)
 {
+#ifdef __DEBUG3__
+	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
+#endif
 	if (!q || q->cancel)
 		return -1;
 
@@ -105,35 +163,35 @@ int msgqueue_send(queue_t *q, const char *buffer, int length)
 	{
 		length = MAX_MESSAGE_SIZE;
 	}
-	int n = 0;
 
-	struct iovec iov[2];
-	iov[0].iov_base = &length;
-	iov[0].iov_len = sizeof(length);
-	iov[1].iov_base = (void *)buffer;
-	iov[1].iov_len = length;
+	int n = 0;
 	do
 	{
-		n = writev(q->pipefd[1], iov, 2);
+		n = zmq_send (q->push, buffer, length, ZMQ_DONTWAIT);
 		if (n <= 0)
 		{
 			if (n == 0)
 				return 0;
 			switch (errno)
 			{
-			case ETIMEDOUT:
-			case EWOULDBLOCK:
+			case EAGAIN:
 				usleep(QUANTUM_SLEEP);
 				break;
+			case EINTR:
+				q->cancel=1;
+				n = -1;
+				break;
+				
 			default:
 				if (!q->cancel)
 				{
-					syslog(LOG_ERR, "%s: error: %d - %s", __FUNCTION__, errno, strerror(errno));
-					exit(EXIT_FAILURE);
+					syslog(LOG_ERR, "%s: error: %d - %s", __FUNCTION__, errno, zmq_strerror(errno));
+					return -1;
 				}
 			}
 		}
 	} while (!q->cancel && (n < 0));
+
 	return n;
 }
 
@@ -144,6 +202,9 @@ int msgqueue_send(queue_t *q, const char *buffer, int length)
  */
 int msgqueue_recv(queue_t *q, char *buffer, int max_size)
 {
+#ifdef __DEBUG3__
+	fprintf(stderr, "%s:%i\n", __FUNCTION__, __LINE__);
+#endif
 	if (!q || q->cancel)
 		return -1;
 
@@ -152,60 +213,32 @@ int msgqueue_recv(queue_t *q, char *buffer, int max_size)
 		max_size = MAX_MESSAGE_SIZE;
 	}
 	memset(buffer, 0, max_size);
+
 	int n = 0;
-	int l = -1;
 	do
 	{
-		if (l < 0)
+		n = zmq_recv (q->pull, buffer, (max_size-1), ZMQ_DONTWAIT);
+		if (n <= 0)
 		{
-			n = read(q->pipefd[0], &l, sizeof(int));
-			if (n <= 0)
-			{
-				if (n == 0)
-					return 0;
-				switch (errno)
-				{
-				case ETIMEDOUT:
-				case EAGAIN:
-					usleep(QUANTUM_SLEEP);
-					break;
-				default:
-					if (!q->cancel)
-					{
-						syslog(LOG_ERR, "%s: error: %d - %s", __FUNCTION__, errno, strerror(errno));
-						;
-						exit(EXIT_FAILURE);
-					}
-					break;
-				}
-			}
-			// need a better way to handle this
-			if (l > max_size)
-			{
-				syslog(LOG_ERR, "%s: error: message bigger than buffer size", __FUNCTION__);
-				exit(EXIT_FAILURE);
-			}
-			if (q->cancel)
+			if (n == 0)
 				return 0;
-			n = read(q->pipefd[0], buffer, l);
-			if (n <= 0)
+			switch (errno)
 			{
-				if (n == 0)
-					return 0;
-				switch (errno)
+			case EAGAIN:
+				usleep(QUANTUM_SLEEP);
+				break;
+			case EINTR:
+				q->cancel=1;
+				n = -1;
+				break;
+				
+			default:
+				if (!q->cancel)
 				{
-				case ETIMEDOUT:
-				case EAGAIN:
-					usleep(QUANTUM_SLEEP);
-					break;
-				default:
-					if (!q->cancel)
-					{
-						syslog(LOG_ERR, "%s: error: %d - %s", __FUNCTION__, errno, strerror(errno));
-						exit(EXIT_FAILURE);
-					}
-					break;
+					syslog(LOG_ERR, "%s: error: %d - %s", __FUNCTION__, errno, zmq_strerror(errno));
+					return -1;
 				}
+				break;
 			}
 		}
 	} while (!q->cancel && (n < 0));
@@ -217,4 +250,3 @@ int msgqueue_recv(queue_t *q, char *buffer, int max_size)
  *
  * ---------------------------------------------------------------------------------------
  */
-

@@ -43,6 +43,7 @@
 #include "dragonfly-io.h"
 #include "config.h"
 
+#define MAX_RETRIES (64)
 /*
  * ---------------------------------------------------------------------------------------
  *
@@ -100,14 +101,16 @@ static int ipc_reopen(DF_HANDLE *dh)
 #endif
         return 0;
 }
-#ifdef COMMENT_OUT
+
 /*
  * ---------------------------------------------------------------------------------------
  *
  * ---------------------------------------------------------------------------------------
  */
+
 static int ipc_set_nonblock(int fd)
 {
+#if 1
         int fd_flags = fcntl(fd, F_GETFL);
         if (fd_flags < 0)
         {
@@ -121,9 +124,9 @@ static int ipc_set_nonblock(int fd)
                 syslog(LOG_ERR, "unable to fcntl: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
         }
+#endif
         return fd;
 }
-#endif
 
 /*
  * ---------------------------------------------------------------------------------------
@@ -184,6 +187,7 @@ DF_HANDLE *ipc_open(const char *ipc_path, int spec)
                         syslog(LOG_ERR, "unable to connect socket: %s - %s\n", addr.sun_path, strerror(errno));
                         return NULL;
                 }
+                 ipc_set_nonblock(socket_handle);
         }
         else
         {
@@ -215,40 +219,18 @@ DF_HANDLE *ipc_open(const char *ipc_path, int spec)
  */
 int ipc_read_message(DF_HANDLE *dh, char *buffer, int len)
 {
+       
         int n = read(dh->fd, buffer, len);
         if (n < 0)
         {
                 if (errno==EINTR) return -1;
                 syslog(LOG_ERR, "read error: %s", strerror(errno));
-                perror("read");
-                exit(EXIT_FAILURE);
+                return -1;
         }
+       
         return n;
 }
 
-/*
- * ---------------------------------------------------------------------------------------
- *
- * ---------------------------------------------------------------------------------------
- */
-int ipc_read_messages(DF_HANDLE *dh, char **buffer, int len, int max)
-{
-        int n = 0;
-        int v = 0;
-        do
-        {
-                n = read(dh->fd, buffer[v]++, (len - 1));
-                if (n < 0)
-                {
-                        if (errno==EINTR) return -1;
-                        syslog(LOG_ERR, "read error: %s", strerror(errno));
-                        perror("read");
-                        exit(EXIT_FAILURE);
-                }
-                buffer[v][n] = '\0';
-        } while ((n > 0) && (v < max));
-        return v;
-}
 /*
  * ---------------------------------------------------------------------------------------
  *
@@ -259,31 +241,26 @@ int ipc_write_message(DF_HANDLE *dh, char *buffer)
         int len = strnlen(buffer, DF_MAX_BUFFER_LEN);
         if (len == 0 || len == DF_MAX_BUFFER_LEN)
         {
-#ifdef __DEBUG__
-                fprintf(stderr, "%s:%i %i length message\n", __FUNCTION__, __LINE__, len);
-#endif
                 return -1;
         }
+        
         int n = 0;
+        int retries = 0;
         do
         {
-                n = send(dh->fd, buffer, len, MSG_NOSIGNAL);
+                n = send(dh->fd, buffer, len, 0);
                 if (n < 0)
                 {
                         switch (errno)
                         {
                         case ETIMEDOUT:
-                                break;
-                        case ENOBUFS:
-                                break;
                         case EAGAIN:
-                                break;
-                        case EINVAL:
+                                usleep(5000);
+                                retries++;
                                 break;
                         default:
-                                syslog(LOG_ERR, "ipc send error: %s", strerror(errno));
-                                perror("send");
-                                exit(EXIT_FAILURE);
+                                syslog(LOG_ERR, "send error: %s", strerror(errno));
+                                return -1;
                         }
                 }
                 else if (n == 0 || errno == EIO)
@@ -292,7 +269,7 @@ int ipc_write_message(DF_HANDLE *dh, char *buffer)
                 }
                 else
                         break;
-        } while (1);
+        } while (retries < MAX_RETRIES);
         return n;
 }
 

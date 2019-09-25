@@ -55,7 +55,7 @@
 #include "dragonfly-lib.h"
 #include "dragonfly-cmds.h"
 #include "dragonfly-io.h"
-#include "webservice.h"
+#include "jsonrpc-server.h"
 #include "config.h"
 #include "param.h"
 
@@ -277,7 +277,8 @@ int analyze_event(lua_State *L)
             const char *message = lua_tolstring(L, -1, &len);
             if (msgqueue_send(g_analyzer_list[i].queue, message, len) < 0)
             {
-                syslog(LOG_ERR, "%s:  msgqueue_send() error - %i", __FUNCTION__, (int)len);
+		g_running=0;
+		return -1;
             }
 
             lua_settop(L, index-1);
@@ -315,7 +316,10 @@ int log_event(lua_State *L)
     size_t len = 0;
     const char *message = lua_tolstring(L, -1, &len);
 
-    msgqueue_send(g_output_list[DRAGONFLY_LOG_INDEX].queue, message, len);
+    if (msgqueue_send(g_output_list[DRAGONFLY_LOG_INDEX].queue, message, len) < 0)
+    {
+	return -1;
+    }
     lua_settop (L, index-1);
 
     return 0;
@@ -348,7 +352,10 @@ int stats_event(lua_State *L)
 
     size_t len = 0;
     const char *message = lua_tolstring(L, -1, &len);
-    msgqueue_send(g_output_list[DRAGONFLY_STATS_INDEX].queue, message, len);
+    if (msgqueue_send(g_output_list[DRAGONFLY_STATS_INDEX].queue, message, len) < 0)
+    {
+	return -1;
+    }
 
     lua_settop (L, index-1);
 
@@ -387,7 +394,10 @@ int forward_event(lua_State *L)
         
             size_t len = 0;
             const char *message = lua_tolstring(L, -1, &len);
-            msgqueue_send(g_output_list[i].queue, message, len);
+            if (msgqueue_send(g_output_list[i].queue, message, len) < 0)
+            {
+		return -1;
+            }
 	    lua_settop (L, index-1);
             return 0;
         }
@@ -426,7 +436,8 @@ static void *lua_timer_thread(void *ptr)
                 {
                     if (msgqueue_send(g_timer_list[i].queue, g_timer_list[i].message, g_timer_list[i].length) < 0)
                     {
-                        syslog(LOG_ERR, "%s:  msgqueue_send() error - %i", __FUNCTION__, (int)g_timer_list[i].length);
+			g_running=0;
+			continue;
                     }
                     g_timer_list[i].epoch = 0;
                     g_timer_list[i].length = 0;
@@ -449,7 +460,10 @@ static void *lua_timer_thread(void *ptr)
                      "{ \"time\": \"%s\", \"operations\": { \"input\": %lu, \"analyzer\":%lu, \"output\":%lu }}",
                      timestamp, g_stats->input, g_stats->analysis, g_stats->output);
             last_time = now_time;
-            msgqueue_send(g_output_list[DRAGONFLY_STATS_INDEX].queue, buffer, strlen(buffer));
+            if (msgqueue_send(g_output_list[DRAGONFLY_STATS_INDEX].queue, buffer, strlen(buffer)) < 0)
+            {
+		g_running=0;
+            }
         }
     }
     syslog(LOG_NOTICE, "%s exiting\n", "timer");
@@ -468,28 +482,16 @@ void lua_flywheel_loop(INPUT_CONFIG *flywheel)
 
     while (g_running)
     {
-
-        if ((n = dragonfly_io_read(flywheel->input, buffer, _MAX_BUFFER_SIZE_)) < 0)
+        if ((n = dragonfly_io_read(flywheel->input, buffer, _MAX_BUFFER_SIZE_)) > 0)
         {
-            if (g_running)
+            if (msgqueue_send(flywheel->queue, buffer, n) < 0)
             {
-                syslog(LOG_ERR, "%s: dragonfly_io_read() error", __FUNCTION__);
+		g_running=0;
             }
-            return;
         }
-        /*
-        else if (n==0)
+	else if (n < 0)
         {
-            syslog(LOG_ERR, "%s: dragonfly_io_read() zero", __FUNCTION__);
-        }
-        */
-        else if (n == _MAX_BUFFER_SIZE_)
-        {
-            syslog(LOG_ERR, "%s: skipping message; exceeded buffer size of %d", __FUNCTION__, _MAX_BUFFER_SIZE_);
-        }
-        else
-        {
-            msgqueue_send(flywheel->queue, buffer, n);
+	    g_running=0;
         }
     }
 }
@@ -547,15 +549,7 @@ void lua_input_loop(lua_State *L, INPUT_CONFIG *input)
     lua_disable_io(L);
     while (g_running)
     {
-        if ((n = msgqueue_recv(input->queue, buffer, _MAX_BUFFER_SIZE_)) <= 0)
-        {
-            return;
-        }
-        else if (n == _MAX_BUFFER_SIZE_)
-        {
-            syslog(LOG_ERR, "%s: skipping message; exceeded buffer size of %d", __FUNCTION__, _MAX_BUFFER_SIZE_);
-        }
-        else
+        if ((n = msgqueue_recv(input->queue, buffer, (_MAX_BUFFER_SIZE_-1))) > 0)
         {
 	    lua_getglobal(L,"cjson_safe");
 	    int index = lua_gettop(L);
@@ -581,6 +575,10 @@ void lua_input_loop(lua_State *L, INPUT_CONFIG *input)
             }
             lua_settop(L, index-1);
             g_stats->input++;
+        }
+	else if (n < 0)
+	{
+	    g_running=0;
         }
     }
 }
@@ -699,15 +697,7 @@ void lua_output_loop(OUTPUT_CONFIG *output)
     char buffer[_MAX_BUFFER_SIZE_];
     while (g_running)
     {
-        if ((n = msgqueue_recv(output->queue, buffer, _MAX_BUFFER_SIZE_)) <= 0)
-        {
-            return;
-        }
-        else if (n == _MAX_BUFFER_SIZE_)
-        {
-            syslog(LOG_ERR, "%s: skipping message; exceeded buffer size of %d", __FUNCTION__, _MAX_BUFFER_SIZE_);
-        }
-        else
+        if ((n = msgqueue_recv(output->queue, buffer, (_MAX_BUFFER_SIZE_-1))) > 0)
         {
             buffer[n] = '\0';
             if (strcasecmp(buffer, ROTATE_MESSAGE) == 0)
@@ -724,6 +714,10 @@ void lua_output_loop(OUTPUT_CONFIG *output)
                 if (g_stats)
                     g_stats->output++;
             }
+        }
+	else if (n < 0)
+        {
+	    g_running=0;
         }
     }
 }
@@ -779,16 +773,7 @@ void lua_analyzer_loop(lua_State *L, ANALYZER_CONFIG *analyzer)
 
     while (g_running)
     {
-
-        if ((n = msgqueue_recv(analyzer->queue, buffer, _MAX_BUFFER_SIZE_)) <= 0)
-        {
-            return;
-        }
-        else if (n == _MAX_BUFFER_SIZE_)
-        {
-            syslog(LOG_ERR, "%s: skipping message; exceeded buffer size of %d", __FUNCTION__, _MAX_BUFFER_SIZE_);
-        }
-        else
+        if ((n = msgqueue_recv(analyzer->queue, buffer, _MAX_BUFFER_SIZE_)) > 0)
         {
             lua_getglobal(L,"marshal");
             int index = lua_gettop(L);
@@ -815,6 +800,10 @@ void lua_analyzer_loop(lua_State *L, ANALYZER_CONFIG *analyzer)
 
             if (g_stats)
                 g_stats->analysis++;
+        }
+	else if (n < 0)
+        {
+	   g_running=0;
         }
     }
 }
@@ -1192,14 +1181,14 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
     }
 
     /* start the static web interface to serve up analyzer explaination */
-    void *web_ctx = start_web_server(WEB_DIR, WEB_PORT);
+    void *rpc_ctx = start_rpc_server(WEB_DIR, WEB_PORT);
 
     while (g_running)
     {
         sleep(1);
     }
 
-    stop_web_server(web_ctx);
+    stop_rpc_server(rpc_ctx);
 
     n = 0;
     while (g_analyzer_thread[n])
@@ -1229,6 +1218,8 @@ void launch_analyzer_process(const char *dragonfly_analyzer_root)
 
 static void create_message_queues()
 {
+    void *context = msgqueue_init ();
+
     for (int i = 0; i < MAX_ANALYZER_STREAMS; i++)
     {
         if (g_analyzer_list[i].script != NULL)
@@ -1236,7 +1227,7 @@ static void create_message_queues()
             char analyzer_name[1024];
             snprintf(analyzer_name, sizeof(analyzer_name), "%s-%d", QUEUE_ANALYZER, i);
 
-            g_analyzer_list[i].queue = msgqueue_create(analyzer_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
+            g_analyzer_list[i].queue = msgqueue_create(context, analyzer_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
         }
     }
     for (int i = 0; i < MAX_INPUT_STREAMS; i++)
@@ -1247,7 +1238,7 @@ static void create_message_queues()
             {
                 char input_name[1024];
                 snprintf(input_name, sizeof(input_name), "%s-%d", QUEUE_INPUT, i);
-                g_input_list[i].queue = msgqueue_create(input_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
+                g_input_list[i].queue = msgqueue_create(context, input_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
             }
         }
     }
@@ -1258,7 +1249,7 @@ static void create_message_queues()
         {
             char output_name[PATH_MAX];
             snprintf(output_name, sizeof(output_name), "%s-%d-%s", QUEUE_OUTPUT, i, g_output_list[i].tag);
-            g_output_list[i].queue = msgqueue_create(output_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
+            g_output_list[i].queue = msgqueue_create(context, output_name, _MAX_BUFFER_SIZE_, MAX_RING_BUFFER_SIZE);
         }
     }
 }
@@ -1299,6 +1290,7 @@ static void destroy_message_queues()
         msgqueue_destroy(g_output_list[i].queue);
         g_output_list[i].queue = NULL;
     }
+    msgqueue_term();
 }
 
 /*
@@ -1316,6 +1308,7 @@ void shutdown_threads()
     while (g_io_thread[n])
     {
         pthread_join(g_io_thread[n++], NULL);
+	memset (&g_io_thread[n++], 0, sizeof (pthread_t));
     }
     pthread_barrier_destroy(&g_flywheel_barrier);
     pthread_barrier_destroy(&g_output_barrier);

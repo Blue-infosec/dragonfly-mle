@@ -60,7 +60,6 @@ typedef struct _DF_HANDLE_
 DF_HANDLE *dragonfly_io_open(const char *path, int spec);
 int dragonfly_io_write(DF_HANDLE *dh, char *buffer);
 int dragonfly_io_read(DF_HANDLE *dh, char *buffer, int max);
-int dragonfly_io_read_lines(DF_HANDLE *dh, char *buffer[], int len, int max);
 void dragonfly_io_flush(DF_HANDLE *dh);
 void dragonfly_io_close(DF_HANDLE *dh);
 void dragonfly_io_rotate(DF_HANDLE *dh);
