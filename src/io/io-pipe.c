@@ -110,7 +110,6 @@ static int ipc_reopen(DF_HANDLE *dh)
 
 static int ipc_set_nonblock(int fd)
 {
-#if 1
         int fd_flags = fcntl(fd, F_GETFL);
         if (fd_flags < 0)
         {
@@ -124,7 +123,6 @@ static int ipc_set_nonblock(int fd)
                 syslog(LOG_ERR, "unable to fcntl: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
         }
-#endif
         return fd;
 }
 

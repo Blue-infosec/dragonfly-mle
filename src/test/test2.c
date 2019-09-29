@@ -145,7 +145,7 @@ void SELF_TEST2(const char *dragonfly_root)
 			fprintf(stderr, "\t%lu redis pings\n", i);
 		}
 
-		dragonfly_io_write(pump, buffer);
+		if (dragonfly_io_write(pump, buffer) < 0) break;
 	}
 	dragonfly_io_close(pump);
 	sleep(1);

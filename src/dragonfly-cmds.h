@@ -24,8 +24,8 @@
 #ifndef _DRAGONFLY_CMD_H_
 #define _DRAGONFLY_CMD_H_
 
-#include <luajit-2.0/lauxlib.h>
-#include <luajit-2.0/luajit.h>
+#include <luajit-2.1/lauxlib.h>
+#include <luajit-2.1/luajit.h>
 
 int dragonfly_date2epoch(lua_State *L);
 int dragonfly_http_get(lua_State *L);

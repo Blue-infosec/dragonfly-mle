@@ -42,9 +42,9 @@
 #include <limits.h>
 #include <sys/wait.h>
 
-#include <luajit-2.0/lauxlib.h>
-#include <luajit-2.0/lualib.h>
-#include <luajit-2.0/luajit.h>
+#include <luajit-2.1/lauxlib.h>
+#include <luajit-2.1/lualib.h>
+#include <luajit-2.1/luajit.h>
 
 #include "lua-hiredis.h"
 #include "lua-cjson.h"
@@ -109,7 +109,7 @@ int log_event(lua_State *L);
 int stats_event(lua_State *L);
 
 /* list of functions in the module */
-static const luaL_reg dragonfly_functions[] =
+static const luaL_Reg dragonfly_functions[] =
     {{"date2epoch", dragonfly_date2epoch},
      {"http_get", dragonfly_http_get},
      {"dnslookup", dragonfly_dnslookup},

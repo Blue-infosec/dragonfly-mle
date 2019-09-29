@@ -67,8 +67,8 @@ static int g_lua_redis_port = 0;
 
 #include <stdlib.h>
 #include <string.h>
-#include <luajit-2.0/lauxlib.h>
-#include <luajit-2.0/luajit.h>
+#include <luajit-2.1/lauxlib.h>
+#include <luajit-2.1/luajit.h>
 
 #if defined(__cplusplus)
 }

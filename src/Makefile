@@ -35,7 +35,7 @@ UNIT_SRC = unit-test.c
 # library ore files
 # -----------------------------------------------------------------
 SRCS0 = dragonfly-lib.c dragonfly-io.c dragonfly-cmds.c config.c \
-	jsonrpc-server.c msgqueue.c
+	jsonrpc-server.c msgqueue.c 
 
 # ------------------------------------------------------------------
 # I/O modules
@@ -48,7 +48,7 @@ SRCS1 = io/io-file.c io/io-pipe.c io/io-tail.c io/io-syslog.c \
 # ------------------------------------------------------------------
 SRCS3 = lib/lua-hiredis/lua-hiredis.c lib/lua-cjson/lua-cjson.c \
         lib/lua-cjson/strbuf.c lib/lua-cjson/fpconv.c \
-        lib/lua-marshal/lmarshal.c 
+        lib/lua-marshal/lmarshal.c lib/lua-cmsgpack/lua_cmsgpack.c
 
 # ------------------------------------------------------------------
 # unit test files

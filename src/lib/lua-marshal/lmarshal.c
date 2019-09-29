@@ -33,9 +33,9 @@
 #include <string.h>
 #include <stdint.h>
 
-#include <luajit-2.0/lauxlib.h>
-#include <luajit-2.0/lualib.h>
-#include <luajit-2.0/luajit.h>
+#include <luajit-2.1/lauxlib.h>
+#include <luajit-2.1/lualib.h>
+#include <luajit-2.1/luajit.h>
 
 #define MAR_TREF 1
 #define MAR_TVAL 2
@@ -529,7 +529,7 @@ static int mar_clone(lua_State* L)
     return 1;
 }
 
-static const luaL_reg R[] =
+static const luaL_Reg R[] =
 {
     {"encode",      mar_encode},
     {"decode",      mar_decode},

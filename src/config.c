@@ -43,8 +43,8 @@
 #include <signal.h>
 #include <limits.h>
 
-#include <luajit-2.0/lauxlib.h>
-#include <luajit-2.0/luajit.h>
+#include <luajit-2.1/lauxlib.h>
+#include <luajit-2.1/luajit.h>
 
 #include <hiredis/hiredis.h>
 

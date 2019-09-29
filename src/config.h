@@ -108,9 +108,9 @@ typedef struct _RESPONDER_CONFIG_
     char *param;
 } RESPONDER_CONFIG;
 
-#include <luajit-2.0/lauxlib.h>
-#include <luajit-2.0/lualib.h>
-#include <luajit-2.0/luajit.h>
+#include <luajit-2.1/lauxlib.h>
+#include <luajit-2.1/lualib.h>
+#include <luajit-2.1/luajit.h>
 
 int load_analyzers_config(lua_State *L, const char* analyzer_dir, ANALYZER_CONFIG analyzer_list[], int max);
 void unload_analyzers_config(ANALYZER_CONFIG analyzer_list[], int max);
