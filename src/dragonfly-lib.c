@@ -475,23 +475,53 @@ static void *lua_timer_thread(void *ptr)
  *
  * ---------------------------------------------------------------------------------------
  */
-void lua_flywheel_loop(INPUT_CONFIG *flywheel)
+static int lua_flywheel_callback(DF_HANDLE *dh, char *buffer, int len)
+{
+    if (g_running)
+    {       
+        if (msgqueue_send((queue_t *) dh->user, buffer, len) < 0)
+        {
+            g_running=0;
+            return -1;
+        }
+        return 0;
+    }
+    else
+    {
+        return -1;
+    }
+    
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+static void lua_flywheel_loop(INPUT_CONFIG *flywheel)
 {
     int n = 0;
     char buffer[_MAX_BUFFER_SIZE_];
 
     while (g_running)
     {
-        if ((n = dragonfly_io_read(flywheel->input, buffer, _MAX_BUFFER_SIZE_)) > 0)
+        // TCP server requires an event callback
+        if (dragonfly_io_is_tcp (flywheel->input))
+        {
+             dragonfly_io_dispatch_read (flywheel->input, lua_flywheel_callback);
+             g_running=0;
+             break;
+        }
+	else if ((n = dragonfly_io_read(flywheel->input, buffer, _MAX_BUFFER_SIZE_)) > 0)
         {
             if (msgqueue_send(flywheel->queue, buffer, n) < 0)
             {
-		g_running=0;
+		        g_running=0;
             }
         }
-	else if (n < 0)
+	if (n < 0)
         {
-	    g_running=0;
+	        g_running=0;
         }
     }
 }
@@ -515,15 +545,17 @@ static void *lua_flywheel_thread(void *ptr)
     while (g_running)
     {
         syslog(LOG_NOTICE, "%s: opening %s\n", flywheel->tag, flywheel->uri);
+
         if ((flywheel->input = dragonfly_io_open(flywheel->uri, DF_IN)) == NULL)
         {
             break;
         }
+
         lua_flywheel_loop(flywheel);
         dragonfly_io_close(flywheel->input);
 
         // if the source is a flat file, then exit
-        if (dragonfly_io_isfile(flywheel->input))
+        if (dragonfly_io_is_file(flywheel->input))
         {
             break;
         }
@@ -715,9 +747,9 @@ void lua_output_loop(OUTPUT_CONFIG *output)
                     g_stats->output++;
             }
         }
-	else if (n < 0)
+	    else if (n < 0)
         {
-	    g_running=0;
+	        g_running=0;
         }
     }
 }
@@ -801,9 +833,9 @@ void lua_analyzer_loop(lua_State *L, ANALYZER_CONFIG *analyzer)
             if (g_stats)
                 g_stats->analysis++;
         }
-	else if (n < 0)
+	    else if (n < 0)
         {
-	   g_running=0;
+	        g_running=0;
         }
     }
 }

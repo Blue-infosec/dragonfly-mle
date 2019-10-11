@@ -41,6 +41,7 @@
 #define DF_OUT_ZFILE_TYPE 7
 #define DF_IN_NATS_TYPE 8
 #define DF_OUT_NATS_TYPE 9
+#define DF_SERVER_TCP_TYPE 10
 
 #define DF_MAX_BUFFER_LEN 4096
 
@@ -55,15 +56,20 @@ typedef struct _DF_HANDLE_
     char *path;
     char *tag;
     void *ptr;
+    void *user;
 } DF_HANDLE;
+
+typedef int (*read_callback)(DF_HANDLE *dh, char *buffer, int len);
 
 DF_HANDLE *dragonfly_io_open(const char *path, int spec);
 int dragonfly_io_write(DF_HANDLE *dh, char *buffer);
 int dragonfly_io_read(DF_HANDLE *dh, char *buffer, int max);
+int dragonfly_io_dispatch_read (DF_HANDLE *dh, read_callback ptr);
 void dragonfly_io_flush(DF_HANDLE *dh);
 void dragonfly_io_close(DF_HANDLE *dh);
 void dragonfly_io_rotate(DF_HANDLE *dh);
-int dragonfly_io_isfile(DF_HANDLE *dh);
+int dragonfly_io_is_file(DF_HANDLE *dh);
+int dragonfly_io_is_tcp(DF_HANDLE *dh);
 
 void dragonfly_io_set_rundir (const char* rundir);
 const char* dragonfly_io_get_rundir ();

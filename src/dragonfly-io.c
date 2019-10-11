@@ -39,6 +39,7 @@
 #include "io-pipe.h"
 #include "io-zfile.h"
 #include "io-nats.h"
+#include "io-tcp.h"
 #include "io-syslog.h"
 
 static char *g_run_dir = NULL;
@@ -123,6 +124,10 @@ DF_HANDLE *dragonfly_io_open(const char *uri, int spec)
         {
                 return nats_open(((const char *)uri + 7), spec);
 	}
+        else if (strncmp("tcp://", uri, 6) == 0)
+        {
+                return tcp_open(((const char *)uri + 6), spec);
+	}
         else
         {
                 syslog(LOG_ERR, "%s: invalid file specifier", __FUNCTION__);
@@ -155,6 +160,10 @@ int dragonfly_io_write(DF_HANDLE *dh, char *buffer)
         else if (dh->io_type == DF_OUT_NATS_TYPE)
         {
                 return nats_write_message(dh, buffer);
+        }
+        else if (dh->io_type == DF_SERVER_TCP_TYPE)
+        {
+                return tcp_write_message(dh, buffer);
         }
         return -1;
 }
@@ -190,7 +199,24 @@ int dragonfly_io_read(DF_HANDLE *dh, char *buffer, int len)
         {
                 return nats_read_message(dh, buffer, len);
         }
+        else if (dh->io_type == DF_SERVER_TCP_TYPE)
+        {
+                return tcp_read_message(dh, buffer, len);
+        }
         return -1;
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+int dragonfly_io_read_callback(DF_HANDLE *dh, void* user, read_callback ptr)
+{
+        dh->ptr = ptr;
+        dh->user = user;
+	// TODO
+	return -1;
 }
 
 /*
@@ -236,6 +262,10 @@ void dragonfly_io_close(DF_HANDLE *dh)
         {
                 return zfile_close(dh);
         }
+        else if (dh->io_type == DF_SERVER_TCP_TYPE)
+        {
+                return tcp_close(dh);
+        }
         free(dh->path);
         dh->path = NULL;
         free(dh);
@@ -247,11 +277,26 @@ void dragonfly_io_close(DF_HANDLE *dh)
  *
  * ---------------------------------------------------------------------------------------
  */
-int dragonfly_io_isfile(DF_HANDLE *dh)
+inline int dragonfly_io_isfile(DF_HANDLE *dh)
 {
         if (dh &&
             ((dh->io_type == DF_OUT_FILE_TYPE) ||
              (dh->io_type == DF_IN_FILE_TYPE)))
+        {
+                return 1;
+        }
+        return 0;
+}
+
+/*
+ * ---------------------------------------------------------------------------------------
+ *
+ * ---------------------------------------------------------------------------------------
+ */
+inline int dragonfly_io_is_tcp(DF_HANDLE *dh)
+{
+        if (dh &&
+           (dh->io_type == DF_SERVER_TCP_TYPE))
         {
                 return 1;
         }
