@@ -1,8 +1,8 @@
 
 
-<center><img src="https://github.com/counterflow-ai/dragonfly-mle/blob/master/doc/images/dragonflymle.png" width="450"></center>
-
 #### DEPRECATED
+
+This project is no longer active. Please refer to: https://github.com/counterflow-ai/dragonfly2
 
 #### NAME
 dragonfly-mle - Dragonfly Machine Learning Engine (MLE)
